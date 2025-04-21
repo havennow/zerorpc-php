@@ -47,15 +47,16 @@ class Context extends \ZMQContext
     /**
      * @param $endpoint
      * @param $version
-     * @return false
+     * @return string
      */
-    public function hookResolveEndpoint($endpoint, $version): false
+    public function hookResolveEndpoint($endpoint, $version): string
     {
         $endpoint_ = false;
         foreach ($this->hooks['resolve_endpoint'] as $func) {
             $endpoint_ = $func($endpoint, $version);
         }
-        return $endpoint_ ? : $endpoint;
+
+        return $endpoint_ ?: $endpoint;
     }
 
     /**

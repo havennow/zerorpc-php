@@ -30,7 +30,7 @@ class RemoteException extends RPCException
     private $name;
     private $representation;
 
-    public function __construct(array $exception, $code = 0, Exception $previous = null)
+    public function __construct(array $exception, $code = 0, ?Exception $previous = null)
     {
         $this->name = $exception[0];
         $this->representation = $exception[1];

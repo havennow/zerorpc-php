@@ -30,7 +30,7 @@ class Response extends Event
      * @param string|null $content
      * @param array|string|null $envelope
      */
-    public function __construct(array $header, ?string $status, ?string $content, null|array|string $envelope)
+    public function __construct(null|array|string $envelope, array $header, ?string $status, mixed $content)
     {
         $this->envelope = $envelope;
         $this->header = $header;
