@@ -3,30 +3,58 @@ namespace ZeroRPC;
 
 Use ZMQ;
 
-class Channel 
+/**
+ * Channel
+ */
+class Channel
 {
+    /**
+     *
+     */
+    const int DEFAULT_TIMEOUT = 600;
+    /**
+     *
+     */
+    const int INTERVAL = 100;
 
-    const DEFAULT_TIMEOUT = 600;
-    const INTERVAL = 100; 
+    /**
+     * @var array
+     */
+    private static array $pendingRequests = [];
+    /**
+     * @var array
+     */
+    private static array $sockets = [];
+    /**
+     * @var int|null
+     */
+    private static mixed $ID = null;
 
-    private static $pendingRequests = array();
-    private static $sockets = array();
-    private static $ID = null;
-
-    public static function get($messageID) 
+    /**
+     * @param $messageID
+     * @return false|mixed
+     */
+    public static function get($messageID): mixed
     {
-        if (isset(self::$pendingRequests[$messageID])) {
-            return self::$pendingRequests[$messageID];
-        }
-        return false;
+        return self::$pendingRequests[$messageID] ?? false;
     }
 
-    public static function registerSocket($socket)
+    /**
+     * @param $socket
+     * @return void
+     */
+    public static function registerSocket($socket): void
     {
-        array_push(self::$sockets, $socket);
+        self::$sockets[] = $socket;
     }
 
-    public static function registerRequest($socket, $event, &$response)
+    /**
+     * @param $socket
+     * @param $event
+     * @param $response
+     * @return void
+     */
+    public static function registerRequest($socket, $event, &$response): void
     {
         $messageID = $event->getMessageID();
         self::$pendingRequests[$messageID] = array(
@@ -38,7 +66,12 @@ class Channel
         );
     }
 
-    public static function dispatch($timeout = self::DEFAULT_TIMEOUT) 
+    /**
+     * @throws \ZMQPollException
+     * @throws EventException
+     * @throws TimeoutException
+     */
+    public static function dispatch($timeout = self::DEFAULT_TIMEOUT): void
     {
         $origin_timeout = $timeout;
 
@@ -80,29 +113,39 @@ class Channel
         self::clear();
     }
 
-    public static function clear() 
+    /**
+     * @return void
+     */
+    public static function clear(): void
     {
         self::$pendingRequests = array();
     }
 
-    public static function startRequest(\ZMQSocket $socket, Event $event, &$response) 
+    /**
+     * @throws \ZMQSocketException
+     */
+    public static function startRequest(\ZMQSocket $socket, Event $event, &$response): void
     {
         self::registerRequest($socket, $event, $response);
         $socket->sendMulti($event->serialize());
     }
 
-    public static function handleEvent(Event $event) 
+    /**
+     * @param Event $event
+     * @return mixed
+     */
+    public static function handleEvent(Event $event): mixed
     {
         $messageID = $event->header['response_to'];
         
         if (!isset(self::$pendingRequests[$messageID])) {
-            return;
+            return null;
         }
 
         $pendingRequest = self::$pendingRequests[$messageID];
         $socket = $pendingRequest['socket'];
 
-        if ($event->status === '_zpc_hb') {
+        if ($event?->status === '_zpc_hb') {
             $request = new Request('_zpc_hb', array(), $messageID, $event->getMessageID());
             return $socket->sendMulti($request->serialize());
         }
@@ -110,6 +153,8 @@ class Channel
         $callback = self::$pendingRequests[$messageID]['callback'];
         $callback($event->getContent());
         unset(self::$pendingRequests[$messageID]);
+
+        return null;
     }
 
 }
